@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dowload CSV</title>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
+    <link href="style.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+    
+
+   
+</head>
+<body>
+<!--Alert-->
+    <div id="liveAlertPlaceholder"></div>
+
+<!--Header-->
+    <div id="title">
+        <hr><b><h1 id="header">Blood Pressure Analysis</h1></b><hr>
+    </div><br><br><br>
+
+<!--Input-->   
+    <div id="user_info">
+        <label class="lab"><b>Name:</b><input autocomplete="off" id="name" autofocus type="text"></label><br>
+        <label class="lab"><b>Email:</b><input autocomplete="off" id="email" type="email"></label>
+    </div>
+
+    <div id="intro"><br><br>
+        <h2>Enter Your result values below</h2>
+    </div>
+
+    <div id="input">
+        <input autocomplete="off" autofocus id="top" type="number"  placeholder="SYSTOLIC mmHG" >
+        <input autocomplete="off" id="bottom" type="number" placeholder="DIASTOLIC mmHG" ><br>
+    </div>        
+
+<!--Result-->
+    <h1 id="updatemessage"></h1>
+    <div id="result"><br>
+        <h2 id="result1"> Your result will Show here</h2>
+    </div><hr>
+
+    <div id="result_button">
+        <button type="button" class="btn btn-primary" onclick="add_data_To_database()" id="Gen_result">Save Record</button>
+    </div><hr>
+
+    <div id="Database">
+        <button onclick="export_csv()"  class="btn btn-primary" >Download Database</button>
+        <h2 id="result"></h2>
+    </div>
+
+<!--Javascript-->
+<script>
+    //Collecting user inputs
+
+    const arrayHeader = ["Name", "Email", "Systolic", "Diastolic"];
+
+    let Name = document.getElementById('name');
+    let email = document.getElementById('email');
+    let topValue = document.getElementById('top');
+    let bottomValue = document.getElementById('bottom');
+
+    //Setting & Getting database
+    let userRecords = []
+
+    if (!localStorage.getItem('database')) {
+        localStorage.setItem('database', JSON.stringify(userRecords));
+    }
+
+    //function to calculate BP
+    let diastolic_value = document.getElementById('bottom');
+
+    diastolic_value.addEventListener('keyup', BP);
+
+    //BP Analysis Function
+
+    function BP() {
+        let topValue = document.querySelector('#top').value;
+        let bottomValue = document.querySelector('#bottom').value;
+
+        if (topValue && bottomValue != ""){
+            if (topValue < 120 && bottomValue < 80){
+
+                result = document.getElementById("result1");
+                result.style.backgroundColor = "lightgreen";
+                result.innerHTML = "Blood Pressure is NORMAL"
+
+            } else if ((topValue >= 120 && topValue <= 129) && (bottomValue < 80)) {
+
+                result = document.getElementById("result1");
+                result.style.backgroundColor = "orange";
+                result.innerHTML = "Blood Pressure is ELEVATED"
+
+            } else if ((topValue >= 130 && topValue <= 139) || (bottomValue >= 80 && bottomValue <= 89)) {
+
+                result = document.getElementById("result1");
+                result.style.backgroundColor = "darkorange";
+                result.innerHTML = "Blood Pressure is High (Stage 1 Hypertension)"
+
+            } else if ((topValue >= 140 && topValue <= 180) || (bottomValue >= 90 && bottomValue <=120) ) {
+
+                result = document.getElementById("result1");
+                result.style.backgroundColor = "red";
+                result.innerHTML = "Blood Pressure is High (Stage 2 Hypertension)"
+
+            } else if ((topValue > 180) && (bottomValue > 120)) {
+
+                result = document.getElementById("result1");
+                result.style.backgroundColor = "darkred";
+                result.innerHTML = "Patient is in Hypertensive Crisis (Seek Medical Attention ASAP)"
+
+            } else if ((topValue > 180) || (bottomValue > 120)) {
+
+                result = document.getElementById("result1");
+                result.style.backgroundColor = "darkred";
+                result.innerHTML = "Patient is in Hypertensive Crisis (Seek Medical Attention ASAP)"
+
+            }
+        }
+    }
+
+    //Function to add user data to csv  @Tested 100%
+    function add_data_To_database() {
+        if (Name.value !== '' && email.value !== '' && topValue.value !== '' && bottomValue.value !== '') {
+
+            let database = JSON.parse(localStorage.getItem('database'));
+
+            let sub_data = new Object();
+            sub_data.Name = Name.value;
+            sub_data.Email = email.value;
+            sub_data.Systolic =  topValue.value;
+            sub_data.Diastolic = bottomValue.value;
+
+            database.push(sub_data)
+            localStorage.setItem('database', JSON.stringify(database));
+
+            //clear user input
+            Name.value = '';
+            email.value = '';
+            topValue.value = '';
+            bottomValue.value = '';
+
+
+            console.log(database);
+            console.log('record added');
+            notification()
+
+            result = document.getElementById("result1");
+            result.style.backgroundColor = "red";
+            result.innerHTML = "Your result will show here"
+
+        } else {
+            errorSaving();
+        }
+    }
+
+    //Function to notify user of saved record @TESTED 100%
+    const alertPlaceholder = document.getElementById('liveAlertPlaceholder');
+
+
+    const alert = (message, type) => {
+        const wrapper = document.createElement('div')
+        wrapper.innerHTML = [
+            `<div class="alert alert-${type} alert-dismissible" role="alert">`,
+            `   <div>${message}</div>`,
+            '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+            '</div>'
+        ].join('')
+        alertPlaceholder.append(wrapper)
+    }
+
+    async function delay(delayInms) {
+        return new Promise(resolve  => {
+            setTimeout(() => {
+                resolve(2);
+            }, delayInms);
+        });
+    }
+
+
+    async function notification() {
+        alert('Succefully added Record to Database!', 'success');
+        let delayres = await delay(3000);
+        //Hide alert
+        alertPlaceholder.innerHTML = '';
+    }
+
+    async function errorSaving() {
+        alert('Failed to Add Record!!... All inputs must be filled.', 'danger');
+        let delayres = await delay(3000);
+        //Hide alert
+        alertPlaceholder.innerHTML = '';
+    }
+
+    //Function to download a csv of all records in database object @100% tested
+
+    let delimiter = ',';
+    fileName = 'user_data';
+
+    function export_csv() {
+        let header = arrayHeader.join(',') + '\n';
+        let csv = header;
+        let database = JSON.parse(localStorage.getItem('database'));
+        database.forEach( obj => {
+            let row = [];
+            for (key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    row.push(obj[key]);
+                }
+            }
+            csv += row.join(',')+"\n";
+        });
+
+        let csvData = new Blob([csv], { type: 'text/csv' });  
+        let csvUrl = URL.createObjectURL(csvData);
+
+        let hiddenElement = document.createElement('a');
+        hiddenElement.href = csvUrl;
+        hiddenElement.target = '_blank';
+        hiddenElement.download = fileName + '.csv';
+        hiddenElement.click();
+    }
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
+</body>
+</html>
